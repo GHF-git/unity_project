@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 25fc4c3f29d3d5f418cbdaaab35956d6, type: 3}
+  m_Name: Rear Bumper
+  m_EditorClassIdentifier: Assembly-CSharp::InventoryItemData
+  itemName: Rear Bumper
+  itemIcon: {fileID: 21300000, guid: 748bbe1115820a141abfddba2805670b, type: 3}
+  prefabToSpawn: {fileID: 3865710231725484235, guid: 81ceef2d616d9164fa6e1c3895cf7305, type: 3}
+  targetSnapZoneName: Rear Bumper Zone
