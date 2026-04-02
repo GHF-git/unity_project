@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 25fc4c3f29d3d5f418cbdaaab35956d6, type: 3}
+  m_Name: Left Taillight
+  m_EditorClassIdentifier: Assembly-CSharp::InventoryItemData
+  itemName: Left Taillight
+  itemIcon: {fileID: 21300000, guid: fa83ed67a7e8df74b811024df62209b5, type: 3}
+  prefabToSpawn: {fileID: 5355906637816595307, guid: defa05883a95b21459458ef5d45f8af4, type: 3}
+  targetSnapZoneName: Left Taillight Zone

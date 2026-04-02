@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 25fc4c3f29d3d5f418cbdaaab35956d6, type: 3}
+  m_Name: Rear Axles
+  m_EditorClassIdentifier: Assembly-CSharp::InventoryItemData
+  itemName: Rear Axles
+  itemIcon: {fileID: 21300000, guid: ce96421a2b4219b41913d6b498b7436f, type: 3}
+  prefabToSpawn: {fileID: 2322736893074193199, guid: 4aa6b39f5dab47346a83e4fc256473c2, type: 3}
+  targetSnapZoneName: Rear Axles Zone
