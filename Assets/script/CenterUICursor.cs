@@ -53,6 +53,9 @@ public class CenterUICursor : MonoBehaviour
     // --- Held state ---
     private Rigidbody heldRb;
     private Collider heldCol;
+
+    /// <summary>The GameObject currently held by the cursor, or null if nothing is held.</summary>
+    public GameObject HeldObject => heldRb != null ? heldRb.gameObject : null;
     private int oldLayer;
 
     // Restore rb/collider states

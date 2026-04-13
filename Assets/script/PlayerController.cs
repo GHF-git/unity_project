@@ -1,4 +1,6 @@
 using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
@@ -14,8 +16,15 @@ public class PlayerController : MonoBehaviour
     public float pitchMin = -90f;
     public float pitchMax = 90f;
 
+    [Header("Cursor")]
+    [Tooltip("The red dot crosshair image shown when the cursor is locked.")]
+    public Image redCursorImage;
+
     CharacterController controller;
     float pitch;
+
+    /// <summary>Whether the camera look / cursor lock mode is currently active.</summary>
+    bool isLocked;
 
     void Awake()
     {
@@ -24,9 +33,8 @@ public class PlayerController : MonoBehaviour
         if (cameraRoot == null && Camera.main != null)
             cameraRoot = Camera.main.transform;
 
-        // Cursor always free — no locking, no ESC needed
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        // Start in locked mode: hide OS cursor, show red dot, enable camera look.
+        SetLockMode(true);
     }
 
     void Update()
@@ -34,8 +42,26 @@ public class PlayerController : MonoBehaviour
         if (controller == null || cameraRoot == null)
             return;
 
-        // Mouse look only while Right Mouse Button is held
-        if (Input.GetMouseButton(1))
+        // ESC → unlock
+        if (Input.GetKeyDown(KeyCode.Escape) && isLocked)
+        {
+            SetLockMode(false);
+            return;
+        }
+
+        // Any mouse click while unlocked → re-lock only when NOT over UI
+        if (!isLocked && Input.GetMouseButtonDown(0))
+        {
+            bool overUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+            if (!overUI)
+            {
+                SetLockMode(true);
+                return;
+            }
+        }
+
+        // Camera look (only while locked)
+        if (isLocked)
         {
             float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
             float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
@@ -47,7 +73,7 @@ public class PlayerController : MonoBehaviour
             cameraRoot.localRotation = Quaternion.Euler(pitch, 0f, 0f);
         }
 
-        // Movement (WASD + Q/E)
+        // Movement (WASD + Q/E) — always active regardless of lock state
         float moveX = Input.GetAxisRaw("Horizontal");
         float moveZ = Input.GetAxisRaw("Vertical");
 
@@ -61,5 +87,20 @@ public class PlayerController : MonoBehaviour
         }
 
         controller.Move((move + Vector3.up * (upDown * verticalSpeed)) * Time.deltaTime);
+    }
+
+    /// <summary>
+    /// Toggles between locked (camera look, red dot visible) and
+    /// unlocked (OS cursor visible, red dot hidden) modes.
+    /// </summary>
+    void SetLockMode(bool locked)
+    {
+        isLocked = locked;
+
+        Cursor.lockState = locked ? CursorLockMode.Locked : CursorLockMode.None;
+        Cursor.visible   = !locked;
+
+        if (redCursorImage != null)
+            redCursorImage.enabled = locked;
     }
 }

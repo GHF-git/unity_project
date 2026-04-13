@@ -5,6 +5,9 @@ using UnityEngine.UI;
 /// <summary>
 /// Tracks assembly progress across all counted SnapToPlace zones and drives
 /// a smoothly animated progress bar with a live percentage and parts counter.
+///
+/// Set <see cref="excludeSnapRoot"/> to skip zones that belong to a sub-assembly
+/// (e.g. SteeringSystem-snap) so the car progress bar excludes steering parts.
 /// </summary>
 public class AssemblyProgressUI : MonoBehaviour
 {
@@ -13,6 +16,11 @@ public class AssemblyProgressUI : MonoBehaviour
     public Image progressLineFill;  // Thin accent line at top of panel, same fill
     public Text percentLabel;       // e.g. "73%"
     public Text partsLabel;         // e.g. "11 / 15 parts"
+
+    [Header("Filter")]
+    [Tooltip("If assigned, SnapToPlace zones that are children of this Transform " +
+             "will be excluded from the count (e.g. SteeringSystem-snap).")]
+    public Transform excludeSnapRoot;
 
     [Header("Animation")]
     [Tooltip("Speed at which the bar and line slide toward the target fill amount.")]
@@ -55,12 +63,28 @@ public class AssemblyProgressUI : MonoBehaviour
         foreach (SnapToPlace zone in allZones)
         {
             if (!zone.countInProgress) continue;
+            if (IsExcluded(zone)) continue;
+
             trackedZones.Add(zone);
             zone.OnObjectSnappedEvent += OnSnapped;
             zone.OnObjectRemovedEvent += OnRemoved;
         }
 
         RecalculateCounts();
+    }
+
+    /// <summary>Returns true if the zone is a descendant of the excluded root.</summary>
+    private bool IsExcluded(SnapToPlace zone)
+    {
+        if (excludeSnapRoot == null) return false;
+
+        Transform t = zone.transform;
+        while (t != null)
+        {
+            if (t == excludeSnapRoot) return true;
+            t = t.parent;
+        }
+        return false;
     }
 
     private void OnSnapped(GameObject obj, SnapToPlace zone) => Refresh();

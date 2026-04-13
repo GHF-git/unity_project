@@ -85,4 +85,16 @@ public class InventorySlotVisuals : MonoBehaviour, IPointerEnterHandler, IPointe
                 canvasGroup.alpha = 1f;
         }
     }
+
+    /// <summary>
+    /// Sets the base (idle) color of the slot background.
+    /// Must be called after Awake so originalColor is initialised.
+    /// </summary>
+    public void SetBaseColor(Color color)
+    {
+        originalColor = color;
+        targetColor   = color;
+        if (backgroundImage != null)
+            backgroundImage.color = color;
+    }
 }
