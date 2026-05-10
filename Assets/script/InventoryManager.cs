@@ -96,6 +96,11 @@ public class InventoryManager : MonoBehaviour
             if (assignment != null && assignment.assignedSnapZone == snapZone)
             {
                 RemoveItemPermanently(itemData);
+
+                // Notify AssemblyOrderManager that this part was correctly placed
+                // so it can advance the sequence index to the next expected part.
+                if (AssemblyOrderManager.Instance != null)
+                    AssemblyOrderManager.Instance.AdvanceToNextPart();
             }
             else
             {

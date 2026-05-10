@@ -15,4 +15,5 @@ MonoBehaviour:
   itemName: Differantiel
   itemIcon: {fileID: 21300000, guid: 934946f65c0b4e2489bba97cbf71b967, type: 3}
   prefabToSpawn: {fileID: 3152247871981639352, guid: 9b9639620b88bdd4991d6c0b34a6a527, type: 3}
-  targetSnapZoneName: Differantiel Zone
+  spawnScale: 5
+  targetSnapZoneName: differanciel-snap

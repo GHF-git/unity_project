@@ -49,6 +49,16 @@ public class SteeringAssemblyController : MonoBehaviour
     public GameObject carProgressPanel;
     public GameObject carInventoryPanel;
 
+    [Header("End State")]
+    public ReadyForTheRoadButton readyForTheRoadButton;
+
+    [Header("Instruction Card")]
+    [Tooltip("InstructionCardController — shown when entering the Full Car Assembly phase.")]
+    public InstructionCardController instructionCardController;
+
+    [Tooltip("GarageDoorInstructionUI — subtitle shown when entering the Full Car Assembly phase.")]
+    public GarageDoorInstructionUI garageDoorInstructionUI;
+
     [Header("Animation")]
     public float smoothSpeed = 4f;
 
@@ -80,17 +90,9 @@ public class SteeringAssemblyController : MonoBehaviour
     {
         mainCam = Camera.main;
 
-        // Skip steering phase — show car assembly directly.
-        if (steeringSystem1 != null) steeringSystem1.SetActive(false);
-        SetActive(steeringProgressPanel,  false);
-        SetActive(steeringInventoryPanel, false);
-        SetActive(carProgressPanel,       true);
-        SetActive(carInventoryPanel,      true);
-
-        InventorySystem invSys = carInventoryPanel != null
-            ? carInventoryPanel.GetComponentInParent<InventorySystem>()
-            : FindFirstObjectByType<InventorySystem>();
-        if (invSys != null) invSys.RebuildInventoryUI();
+        // Keep car-phase panels hidden until ShowCarPhase() is explicitly called
+        SetActive(carProgressPanel,  false);
+        SetActive(carInventoryPanel, false);
     }
 
     void Update() { }
@@ -333,13 +335,10 @@ public class SteeringAssemblyController : MonoBehaviour
 
     // ── Phase transition ──────────────────────────────────────────────────────
 
-    void CompleteSteeringPhase()
+    /// <summary>Switches UI from steering phase to car assembly phase.</summary>
+    public void ShowCarPhase()
     {
         isSteeringComplete = true;
-        currentFill = 1f;
-        UpdateBar(1f, allZones.Count, allZones.Count);
-
-        if (steeringSystem1 != null) steeringSystem1.SetActive(false);
 
         SetActive(steeringProgressPanel,  false);
         SetActive(steeringInventoryPanel, false);
@@ -350,6 +349,26 @@ public class SteeringAssemblyController : MonoBehaviour
             ? carInventoryPanel.GetComponentInParent<InventorySystem>()
             : FindFirstObjectByType<InventorySystem>();
         if (invSys != null) invSys.RebuildInventoryUI();
+
+        if (instructionCardController != null)
+            instructionCardController.ShowCard();
+
+        if (garageDoorInstructionUI != null)
+            garageDoorInstructionUI.Show();
+
+        if (readyForTheRoadButton != null)
+            readyForTheRoadButton.Show();
+    }
+
+    void CompleteSteeringPhase()
+    {
+        currentFill = 1f;
+        UpdateBar(1f, allZones.Count, allZones.Count);
+
+        if (steeringSystem1 != null) steeringSystem1.SetActive(false);
+
+        // Panel switch is intentionally deferred to the "Proceed to Car Assembly"
+        // button click via CarAssemblyManager.OnProceedClicked() → ShowCarPhase().
     }
 
     void ShowSteeringPhase()

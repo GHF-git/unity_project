@@ -65,6 +65,10 @@ public class SteeringAnimationController : MonoBehaviour
     [Tooltip("Max pivot of outer (left) wheel in degrees.")]
     public float outerMaxAngle = 28f;
 
+    [Header("Wheel Pivot")]
+    [Tooltip("SteeringWheelPivot on /SteeringSystem1/wheels — notified when animation becomes ready.")]
+    public SteeringWheelPivot wheelPivot;
+
     [Header("Link Anchors — place empty GameObjects at the socket centers")]
     [Tooltip("Empty GameObject at the red circle on the crémaillère (inner ball joint for Right-LINK). " +
              "Must be a child of the crémaillère so it translates with it.")]
@@ -81,6 +85,14 @@ public class SteeringAnimationController : MonoBehaviour
     [Tooltip("Empty GameObject at the grey circle on LeftAxle.001 (outer ball joint for Left-LINK). " +
              "Must be a child of LeftAxle.001 so it rotates with it.")]
     public Transform leftLinkAxleAnchor;
+
+    [Tooltip("Empty GO at the socket hole at the outer (knuckle) end of Right-LINK. " +
+             "Must be a child of Right-LINK so it translates with it.")]
+    public Transform rightLinkKnuckleSocket;
+
+    [Tooltip("Empty GO at the socket hole at the outer (knuckle) end of Left-LINK. " +
+             "Must be a child of Left-LINK so it translates with it.")]
+    public Transform leftLinkKnuckleSocket;
 
     // ── Part references ────────────────────────────────────────────────────
     Transform steeringWheelTr;
@@ -101,6 +113,24 @@ public class SteeringAnimationController : MonoBehaviour
 
     // Group D — shaft, ω_main around its own Y
     Transform arbreBlack1;
+
+    // Four visible assembly gears, ω_main
+    // part.196  → intermediate_gear
+    // part.1575 → upper_gear
+    // part.1576 → lower_gear
+    // fourth    → output_gear
+    Transform inputGear;
+    Transform intermediateGear;
+    Transform upperGear;
+    Transform lowerGear;
+    Transform outputGear;
+
+    // Column shaft group — all spin at ω_main around their local Z axis.
+    Transform columnShaft1;
+    Transform columnShaft2;
+    Transform intermediateShaft;
+    Transform universalJointUpper;
+    Transform universalJointLower;
 
     // Translating parts
     Transform rack;
@@ -143,6 +173,16 @@ public class SteeringAnimationController : MonoBehaviour
 
     Quaternion rightAxleRestWorldRot;
     Quaternion leftAxleRestWorldRot;
+    Vector3    rightLinkRestLocalPos;
+    Vector3    leftLinkRestLocalPos;
+    Quaternion rightAxleRestLocalRot;
+    Quaternion leftAxleRestLocalRot;
+    float      rightArmXZ;   // XZ radius: knuckle origin → link socket in knuckle local space
+    float      leftArmXZ;
+
+    // Rest direction: knuckle kingpin → ball, in knuckle-parent local XZ.
+    Vector3    rightRestBallParentDir;
+    Vector3    leftRestBallParentDir;
 
     // ── Derived sync speeds (deg/s) ────────────────────────────────────────
     float omegaMain;
@@ -156,6 +196,9 @@ public class SteeringAnimationController : MonoBehaviour
     // Clamped to [−rackMaxOffset, +rackMaxOffset].
     float rackOffset;
     bool  animationReady;
+
+    /// <summary>Normalized rack offset in [−1, +1]. Negative = left turn, positive = right turn.</summary>
+    public float NormalizedRackOffset => effectiveMaxOffset > 0f ? rackOffset / effectiveMaxOffset : 0f;
 
     Transform physicalRoot;
 
@@ -180,11 +223,24 @@ public class SteeringAnimationController : MonoBehaviour
         whitearbre1      = FindPart("whitearbre1");
         yellowEngrenage  = FindPart("yellow-engrenage");
         arbreBlack1      = FindPart("arbreBlack1");
-        rack             = FindPart("crémaillère");
+        rack             = FindPart("rack_bar");
         rightLink        = FindPart("Right-LINK");
         leftLink         = FindPart("Left-LINK");
-        rightAxle        = FindPart("rightAxle");
-        leftAxle         = FindPart("LeftAxle.001");
+        rightAxle        = FindPart("steering_knuckle_right");
+        leftAxle         = FindPart("steering_knuckle_left");
+
+        // Four visible assembly gears — searched recursively to handle nesting.
+        inputGear        = FindPartRecursive("input_gear");
+        intermediateGear = FindPartRecursive("intermediate_gear");
+        upperGear        = FindPartRecursive("upper_gear");
+        lowerGear        = FindPartRecursive("lower_gear");
+        outputGear       = FindPartRecursive("output_gear");
+
+        columnShaft1        = FindPartRecursive("column_shaft1");
+        columnShaft2        = FindPartRecursive("column_shaft2");
+        intermediateShaft   = FindPartRecursive("intermediate_shaft");
+        universalJointUpper = FindPartRecursive("universal_joint_upper ");  // trailing space — keep it
+        universalJointLower = FindPartRecursive("universal_joint_lower ");  // trailing space — keep it
 
         LogMissingParts();
     }
@@ -239,22 +295,46 @@ public class SteeringAnimationController : MonoBehaviour
         Rot(yellowEngrenage, 0f, 0f,  omegaYellow * direction * dt);
         Rot(arbreBlack1,     0f,  omegaMain   * direction * dt, 0f);
 
-        // ── Axle pivots: absolute rotation around world Y ────────────────
-        if (rightAxle != null)
-            rightAxle.rotation = Quaternion.AngleAxis(-innerMaxAngle * t, Vector3.up) * rightAxleRestWorldRot;
-        if (leftAxle != null)
-            leftAxle.rotation  = Quaternion.AngleAxis(-outerMaxAngle * t, Vector3.up) * leftAxleRestWorldRot;
+        // Four visible assembly gears (part.196 / part.1575 / part.1576 / output_gear) — same ω_main, same axis.
+        // Multiplied by 2 so the visual spin is clearly perceptible without affecting rack speed.
+        float gearOmega = omegaMain * 2f;
+        Rot(inputGear,        0f, 0f, gearOmega * direction * dt);
+        Rot(intermediateGear, 0f, 0f, gearOmega * direction * dt);
+        Rot(upperGear,        0f, 0f, gearOmega * direction * dt);
+        Rot(lowerGear,        0f, 0f, gearOmega * direction * dt);
+        Rot(outputGear,       0f, 0f, gearOmega * direction * dt);
 
-        // ── Links: reposition and reorient to stay connected ────────────
-        // Each link spans between:
-        //   inner socket → rack red circle (in rack local space, auto-translates with rack)
-        //   outer socket → axle grey circle (in axle local space, auto-rotates with axle)
-        SyncLink(rightLink, rack, rightInnerRackLocal, rightInnerLinkLocal, rightOuterLinkLocal,
-                 rightAxle, rightOuterAxleLocal,
-                 rightLinkRestDir, rightLinkRestWorldRot, rightRodLength);
-        SyncLink(leftLink,  rack, leftInnerRackLocal,  leftInnerLinkLocal,  leftOuterLinkLocal,
-                 leftAxle,  leftOuterAxleLocal,
-                 leftLinkRestDir,  leftLinkRestWorldRot, leftRodLength);
+        // ── Steering column — same ω_main, local Z axis ─────────────────────
+        // column_shaft1/2 and intermediate_shaft are modelled along local Y (X-rot ≈ 270°),
+        // so they spin on local Y. Universal joints are modelled along local Z (Z-rot ≈ 90°).
+        // ── Steering column — same ω_main ───────────────────────────────────
+        // column_shaft1/2 are modelled along local Y (X-rot ≈ 270°) → spin on local Y.
+        // intermediate_shaft sits at a complex arbitrary angle so we derive its spin axis
+        // at runtime from the world positions of the two universal joints it connects.
+        // universal joints are modelled along local Z (Z-rot ≈ 90°) → spin on local Z.
+        Rot(columnShaft1,        0f, omegaMain * direction * dt, 0f);
+        Rot(columnShaft2,        0f, omegaMain * direction * dt, 0f);
+        if (intermediateShaft != null && universalJointUpper != null && universalJointLower != null)
+        {
+            Vector3 axisWorld = (universalJointLower.position - universalJointUpper.position).normalized;
+            intermediateShaft.Rotate(axisWorld, omegaMain * direction * dt, Space.World);
+        }
+        Rot(universalJointUpper, 0f, 0f, omegaMain * direction * dt);
+        Rot(universalJointLower, 0f, 0f, omegaMain * direction * dt);
+
+        // ── Links: translate 1:1 with rack ──────────────────────────────
+        // Links are rigidly bolted to rack ends — same axis, same offset.
+        if (rightLink != null) rightLink.localPosition = rightLinkRestLocalPos + Vector3.left * rackOffset;
+        if (leftLink  != null) leftLink.localPosition  = leftLinkRestLocalPos  + Vector3.left * rackOffset;
+
+        // ── Knuckles: rotate so white ball stays seated in link socket hole ──
+        // Link outer socket (child of Right/Left-LINK) slides with the link.
+        // SyncKnuckleToLink rotates the knuckle around its kingpin (Y) so its
+        // ball tracks that socket — enforcing the physical ball-in-hole constraint.
+        SyncKnuckleToLink(rightAxle, rightLinkKnuckleSocket,
+                          rightRestBallParentDir, rightAxleRestLocalRot);
+        SyncKnuckleToLink(leftAxle,  leftLinkKnuckleSocket,
+                          leftRestBallParentDir,  leftAxleRestLocalRot);
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -278,52 +358,63 @@ public class SteeringAnimationController : MonoBehaviour
 
         Debug.Log($"[SteeringAnimation] Synchronized — " +
                   $"ω_main={omegaMain:F1}°/s  ω_white={omegaWhite:F1}°/s  " +
-                  $"ω_yellow={omegaYellow:F1}°/s  v_rack={rackSpeedLocal:F5} local/s");
+                  $"ω_yellow={omegaYellow:F1}°/s  v_rack={rackSpeedLocal:F5} local/s  " +
+                  $"rightArm={rightArmXZ:F4}  leftArm={leftArmXZ:F4}");
 
-        // Capture rest poses (post-snap world positions guaranteed by AllPartsFullySnapped).
-        if (rack      != null) rackRestLocalPos      = rack.localPosition;
-        if (rightAxle != null) rightAxleRestWorldRot = rightAxle.rotation;
-        if (leftAxle  != null) leftAxleRestWorldRot  = leftAxle.rotation;
-
-        // Capture link two-endpoint geometry.
-        // Inner socket (rack red circle) stored in rack local space → auto-translates with rack.
-        // Outer socket (axle grey circle) stored in axle local space → auto-rotates with axle.
-        // Inner socket also stored in link local space → used to compute link pivot position.
-        CaptureLink(rightLink, rack, rightAxle,
-                    rightLinkRackAnchor, rightLinkAxleAnchor,
-                    out rightInnerRackLocal, out rightOuterAxleLocal,
-                    out rightInnerLinkLocal, out rightOuterLinkLocal,
-                    out rightLinkRestDir, out rightLinkRestWorldRot,
-                    out rightRodLength);
-        CaptureLink(leftLink, rack, leftAxle,
-                    leftLinkRackAnchor, leftLinkAxleAnchor,
-                    out leftInnerRackLocal, out leftOuterAxleLocal,
-                    out leftInnerLinkLocal, out leftOuterLinkLocal,
-                    out leftLinkRestDir, out leftLinkRestWorldRot,
-                    out leftRodLength);
-
-        // Auto-limit rack travel to the tie-rod geometry.
-        // At max offset the rod must not stretch — the rack can only move as far as
-        // the rod length allows given the fixed outer (axle) anchor distance.
-        // We use the smaller of the two rods as the binding constraint.
-        float minRod           = Mathf.Min(rightRodLength, leftRodLength);
-        float rackToAxleDist   = rack != null && rightAxle != null
-                                 ? Vector3.Distance(rack.position, rightAxle.position)
-                                 : 0f;
-        // Maximum safe rack offset = sqrt(rod² − perp²), where perp is the
-        // lateral (Y + Z) distance from inner socket to outer socket at rest.
-        // Simplified: we keep the inspector rackMaxOffset but cap it so the
-        // separation never exceeds rodLength.
-        if (minRod > 0f)
+        // Capture rest poses (post-snap positions guaranteed by AllPartsFullySnapped).
+        if (rack      != null) rackRestLocalPos     = rack.localPosition;
+        if (rightLink != null) rightLinkRestLocalPos = rightLink.localPosition;
+        if (leftLink  != null) leftLinkRestLocalPos  = leftLink.localPosition;
+        if (rightAxle != null)
         {
-            // Distance between inner and outer sockets at rest (= rodLength at rest).
-            // As rack moves by Δ, the inner socket moves by Δ while outer stays fixed →
-            // new separation = sqrt(rodLength² − perp² + Δ²).  We want separation ≤ rodLength,
-            // so Δ ≤ 0 — the rod can only compress, not stretch.  This means we just
-            // ensure effectiveMaxOffset doesn't let the inner socket move more than rodLength
-            // away from the outer socket along the rack axis.
-            effectiveMaxOffset = Mathf.Min(effectiveMaxOffset, minRod);
+            rightAxleRestWorldRot = rightAxle.rotation;
+            rightAxleRestLocalRot = rightAxle.localRotation;
         }
+        if (leftAxle != null)
+        {
+            leftAxleRestWorldRot = leftAxle.rotation;
+            leftAxleRestLocalRot = leftAxle.localRotation;
+        }
+
+        // Steering arm XZ radius: XZ distance from knuckle origin to its link socket.
+        // Determines the knuckle rotation per unit of rack displacement.
+        if (rightLinkAxleAnchor != null)
+        {
+            Vector3 p = rightLinkAxleAnchor.localPosition;
+            rightArmXZ = Mathf.Max(0.001f, Mathf.Sqrt(p.x * p.x + p.z * p.z));
+        }
+        else rightArmXZ = 1f;
+
+        if (leftLinkAxleAnchor != null)
+        {
+            Vector3 p = leftLinkAxleAnchor.localPosition;
+            leftArmXZ = Mathf.Max(0.001f, Mathf.Sqrt(p.x * p.x + p.z * p.z));
+        }
+        else leftArmXZ = 1f;
+
+        // Snap each link socket to the ball's rest world position so the angle starts
+        // at 0°. The socket is a child of the link so it drifts with the link from here.
+        if (rightLinkKnuckleSocket != null && rightLinkAxleAnchor != null)
+            rightLinkKnuckleSocket.position = rightLinkAxleAnchor.position;
+        if (leftLinkKnuckleSocket != null && leftLinkAxleAnchor != null)
+            leftLinkKnuckleSocket.position = leftLinkAxleAnchor.position;
+
+        // Capture rest direction knuckle-kingpin → socket (= ball at rest) in parent-local XZ.
+        // SyncKnuckleToLink uses this as the 0° baseline each frame.
+        if (rightAxle != null && rightLinkKnuckleSocket != null && rightAxle.parent != null)
+        {
+            Vector3 d = rightAxle.parent.InverseTransformPoint(rightLinkKnuckleSocket.position)
+                        - rightAxle.localPosition;
+            rightRestBallParentDir = new Vector3(d.x, 0f, d.z).normalized;
+        }
+        if (leftAxle != null && leftLinkKnuckleSocket != null && leftAxle.parent != null)
+        {
+            Vector3 d = leftAxle.parent.InverseTransformPoint(leftLinkKnuckleSocket.position)
+                        - leftAxle.localPosition;
+            leftRestBallParentDir = new Vector3(d.x, 0f, d.z).normalized;
+        }
+
+        effectiveMaxOffset = Mathf.Max(0f, rackMaxOffset - rackEndStopMargin);
 
         // Links need both position AND rotation freedom (they reposition each frame).
         AllowPosition(rack);
@@ -343,12 +434,50 @@ public class SteeringAnimationController : MonoBehaviour
         AllowRotation(arbreBlack1);
         AllowRotation(rightAxle);
         AllowRotation(leftAxle);
+
+        // Unlock the four visible assembly gears so the Rigidbody doesn't fight our Rotate calls.
+        AllowRotation(inputGear);
+        AllowRotation(intermediateGear);
+        AllowRotation(upperGear);
+        AllowRotation(lowerGear);
+        AllowRotation(outputGear);
+
+        AllowRotation(columnShaft1);
+        AllowRotation(columnShaft2);
+        AllowRotation(intermediateShaft);
+        AllowRotation(universalJointUpper);
+        AllowRotation(universalJointLower);
+
+        if (wheelPivot != null) wheelPivot.OnSteeringReady();
     }
 
     // ──────────────────────────────────────────────────────────────────────
     static void Rot(Transform tr, float x, float y, float z)
     {
         if (tr != null) tr.Rotate(x, y, z, Space.Self);
+    }
+
+    /// <summary>
+    /// Rotates a knuckle around its kingpin (local Y) so its white ball joint
+    /// tracks the world position of the link's outer socket hole each frame.
+    /// restBallDirParent is captured at rest: XZ direction from knuckle pivot
+    /// to ball, in the knuckle's parent local space.
+    /// </summary>
+    void SyncKnuckleToLink(Transform knuckle, Transform linkSocket,
+                           Vector3 restBallDirParent, Quaternion restLocalRot)
+    {
+        if (knuckle == null || linkSocket == null || knuckle.parent == null) return;
+
+        // Direction from knuckle kingpin to link socket, in parent-local XZ.
+        Vector3 toSocket   = knuckle.parent.InverseTransformPoint(linkSocket.position)
+                             - knuckle.localPosition;
+        Vector3 targetDir2D = new Vector3(toSocket.x, 0f, toSocket.z);
+
+        if (targetDir2D.sqrMagnitude < 0.0001f) return;
+
+        // Signed angle from rest direction to current socket direction, around Y.
+        float angle = Vector3.SignedAngle(restBallDirParent, targetDir2D, Vector3.up);
+        knuckle.localRotation = restLocalRot * Quaternion.AngleAxis(angle, Vector3.up);
     }
 
     /// <summary>FreezeAll → FreezeRotation: position changes are allowed.</summary>
@@ -546,8 +675,31 @@ public class SteeringAnimationController : MonoBehaviour
 
 
     // ──────────────────────────────────────────────────────────────────────
+    /// <summary>Searches only direct children of partsRoot (fastest path).</summary>
     Transform FindPart(string partName) =>
         physicalRoot != null ? physicalRoot.Find(partName) : null;
+
+    /// <summary>
+    /// Searches the entire subtree under partsRoot so parts survive hierarchy
+    /// nesting changes (e.g. intermediate_gear nested under a group parent).
+    /// </summary>
+    Transform FindPartRecursive(string partName)
+    {
+        if (physicalRoot == null || string.IsNullOrEmpty(partName)) return null;
+        return FindInChildren(physicalRoot, partName);
+    }
+
+    static Transform FindInChildren(Transform root, string partName)
+    {
+        Transform direct = root.Find(partName);
+        if (direct != null) return direct;
+        foreach (Transform child in root)
+        {
+            Transform found = FindInChildren(child, partName);
+            if (found != null) return found;
+        }
+        return null;
+    }
 
     void LogMissingParts()
     {
@@ -563,11 +715,21 @@ public class SteeringAnimationController : MonoBehaviour
             (whitearbre1,      "whitearbre1"),
             (yellowEngrenage,  "yellow-engrenage"),
             (arbreBlack1,      "arbreBlack1"),
-            (rack,             "crémaillère"),
-            (rightLink,        "Right-LINK"),
-            (leftLink,         "Left-LINK"),
-            (rightAxle,        "rightAxle"),
-            (leftAxle,         "LeftAxle.001"),
+            (rack,      "rack_bar"),
+            (rightLink, "Right-LINK"),
+            (leftLink,  "Left-LINK"),
+            (rightAxle, "steering_knuckle_right"),
+            (leftAxle,  "steering_knuckle_left"),
+            (inputGear,        "input_gear"),
+            (intermediateGear, "intermediate_gear"),
+            (upperGear,        "upper_gear"),
+            (lowerGear,        "lower_gear"),
+            (outputGear,       "output_gear"),
+            (columnShaft1,        "column_shaft1"),
+            (columnShaft2,        "column_shaft2"),
+            (intermediateShaft,   "intermediate_shaft"),
+            (universalJointUpper, "universal_joint_upper "),
+            (universalJointLower, "universal_joint_lower "),
         };
 
         foreach (var (tr, name) in all)

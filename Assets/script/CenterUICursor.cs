@@ -137,15 +137,15 @@ public class CenterUICursor : MonoBehaviour
         // Holding: kinematic + trigger, damit nichts verdrängt und nicht “fliegt”
         if (heldCol != null) heldCol.isTrigger = true;
 
-        heldRb.useGravity = false;
-        heldRb.isKinematic = true; // wir steuern Position direkt
-        heldRb.detectCollisions = true;
-        heldRb.constraints = RigidbodyConstraints.None;
-        heldRb.interpolation = RigidbodyInterpolation.Interpolate;
+        heldRb.useGravity             = false;
+        heldRb.isKinematic            = false; // force non-kinematic so velocity reset is valid
+        heldRb.linearVelocity         = Vector3.zero;
+        heldRb.angularVelocity        = Vector3.zero;
+        heldRb.isKinematic            = true;
+        heldRb.detectCollisions       = true;
+        heldRb.constraints            = RigidbodyConstraints.None;
+        heldRb.interpolation          = RigidbodyInterpolation.Interpolate;
         heldRb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
-
-        heldRb.linearVelocity = Vector3.zero;
-        heldRb.angularVelocity = Vector3.zero;
 
         // Snap-Zone highlight (falls vorhanden)
         var assign = heldRb.GetComponent<SnapZoneAssignment>();
@@ -243,13 +243,14 @@ public class CenterUICursor : MonoBehaviour
         if (heldCol != null) heldCol.isTrigger = true;
 
         heldRb.useGravity             = false;
+        heldRb.isKinematic            = false; // force non-kinematic so velocity reset is valid
+        heldRb.linearVelocity         = Vector3.zero;
+        heldRb.angularVelocity        = Vector3.zero;
         heldRb.isKinematic            = true;
         heldRb.detectCollisions       = true;
         heldRb.constraints            = RigidbodyConstraints.None;
         heldRb.interpolation          = RigidbodyInterpolation.Interpolate;
         heldRb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
-        heldRb.linearVelocity         = Vector3.zero;
-        heldRb.angularVelocity        = Vector3.zero;
 
         var assign = heldRb.GetComponent<SnapZoneAssignment>();
         if (assign != null && assign.assignedSnapZone != null)
@@ -391,13 +392,10 @@ public class CenterUICursor : MonoBehaviour
     void LockAfterSnap(Rigidbody rb)
     {
         if (heldCol != null) heldCol.isTrigger = false;
-
-        rb.linearVelocity = Vector3.zero;
-        rb.angularVelocity = Vector3.zero;
-        rb.useGravity = false;
+        rb.useGravity       = false;
         rb.detectCollisions = true;
-        rb.isKinematic = true;
-        rb.constraints = RigidbodyConstraints.FreezeAll;
+        rb.isKinematic      = true;
+        rb.constraints      = RigidbodyConstraints.FreezeAll;
     }
 
     void CleanupHeld()

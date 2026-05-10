@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 25fc4c3f29d3d5f418cbdaaab35956d6, type: 3}
+  m_Name: Spider_Gear_Right
+  m_EditorClassIdentifier: Assembly-CSharp::InventoryItemData
+  itemName: Spider_Gear_Right
+  itemIcon: {fileID: 0}
+  prefabToSpawn: {fileID: 2333574310788102254, guid: 4ad5c3444b1614d44b31fe3ed6f4ca96, type: 3}
+  spawnScale: 5
+  targetSnapZoneName: Spider_Gear_Right-snap

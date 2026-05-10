@@ -59,9 +59,24 @@ public class SteeringSnapSetup : MonoBehaviour
         public MaterialPropertyBlock mpb;
     }
 
+    /// <summary>
+    /// Group container: the parent is the single grabbable; all sub-ghost
+    /// renderers highlight together; the parent snaps to the ghost group parent.
+    /// </summary>
+    class GroupEntry
+    {
+        public Transform               physicalGroup;
+        public Transform               ghostGroup;
+        public MeshRenderer[]          ghostRenderers;
+        public MaterialPropertyBlock[] mpbs;
+        public bool isHeld;
+        public bool isSnapped;
+    }
+
     static readonly int EmissionId = Shader.PropertyToID("_EmissionColor");
 
-    readonly List<PartEntry> entries = new List<PartEntry>();
+    readonly List<PartEntry>  entries      = new List<PartEntry>();
+    readonly List<GroupEntry> groupEntries = new List<GroupEntry>();
 
     // Tracks how many SnapNextFrame coroutines are still running.
     // Only when this reaches 0 AND all parts are logically snapped
@@ -104,7 +119,25 @@ public class SteeringSnapSetup : MonoBehaviour
         foreach (Transform ghost in ghostRoot)
         {
             MeshRenderer mr = ghost.GetComponent<MeshRenderer>();
-            if (mr == null) continue;
+
+            // Group container (steering_column): no renderer on the parent itself —
+            // apply ghost material and disable colliders on each sub-child instead.
+            if (mr == null)
+            {
+                foreach (Transform subGhost in ghost)
+                {
+                    MeshRenderer subMr = subGhost.GetComponent<MeshRenderer>();
+                    if (subMr != null && ghostMaterial != null)
+                    {
+                        var subMats = new Material[subMr.sharedMaterials.Length];
+                        for (int i = 0; i < subMats.Length; i++) subMats[i] = ghostMaterial;
+                        subMr.sharedMaterials = subMats;
+                    }
+                    foreach (Collider col in subGhost.GetComponentsInChildren<Collider>())
+                        if (!col.isTrigger) col.enabled = false;
+                }
+                continue;
+            }
 
             if (ghostMaterial != null)
             {
@@ -117,10 +150,50 @@ public class SteeringSnapSetup : MonoBehaviour
                 if (!col.isTrigger) col.enabled = false;
         }
 
-        // 2. Set up ALL physical parts as grabbable, link those that have a ghost match
+        // 2. Set up physical parts and link to ghosts
         foreach (Transform part in partsRoot)
         {
-            // Always make grabbable regardless of ghost match
+            // ── Group container (no MeshRenderer on the direct child) ─────────
+            if (part.GetComponent<MeshRenderer>() == null)
+            {
+                string groupLookup = part.name;
+                if (overrideMap.TryGetValue(part.name, out string groupMapped))
+                    groupLookup = groupMapped;
+
+                if (!ghostByName.TryGetValue(groupLookup, out Transform ghostGroup))
+                    continue;
+
+                // The parent becomes the single grabbable — children receive nothing.
+                SetupGroupPhysics(part);
+
+                // Collect all sub-ghost renderers for simultaneous highlighting.
+                var renderers = new List<MeshRenderer>();
+                foreach (Transform subGhost in ghostGroup)
+                {
+                    MeshRenderer subMr = subGhost.GetComponent<MeshRenderer>();
+                    if (subMr == null) continue;
+                    if (subMr.sharedMaterial != null)
+                        subMr.sharedMaterial.EnableKeyword("_EMISSION");
+                    renderers.Add(subMr);
+                }
+
+                var mpbs = new MaterialPropertyBlock[renderers.Count];
+                for (int i = 0; i < mpbs.Length; i++) mpbs[i] = new MaterialPropertyBlock();
+
+                var grp = new GroupEntry
+                {
+                    physicalGroup  = part,
+                    ghostGroup     = ghostGroup,
+                    ghostRenderers = renderers.ToArray(),
+                    mpbs           = mpbs
+                };
+
+                SetGroupHighlight(grp, false);
+                groupEntries.Add(grp);
+                continue;
+            }
+
+            // ── Single-mesh part ──────────────────────────────────────────────
             SetupPhysicalPart(part);
 
             // Resolve ghost: try exact name first, then override map
@@ -146,6 +219,52 @@ public class SteeringSnapSetup : MonoBehaviour
 
             SetGhostHighlight(entry, false);
             entries.Add(entry);
+        }
+    }
+
+    /// <summary>
+    /// Adds a single compound BoxCollider (sized from all sub-child mesh bounds)
+    /// and a Rigidbody to the group parent. Sub-children get no physics.
+    /// </summary>
+    void SetupGroupPhysics(Transform group)
+    {
+        group.gameObject.tag   = "Grabbable";
+        group.gameObject.layer = LayerMask.NameToLayer("Interactable");
+
+        if (group.GetComponent<Collider>() == null)
+        {
+            Bounds worldBounds = new Bounds();
+            bool first = true;
+            foreach (Transform child in group)
+            {
+                MeshRenderer mr = child.GetComponent<MeshRenderer>();
+                if (mr == null) continue;
+                if (first) { worldBounds = mr.bounds; first = false; }
+                else worldBounds.Encapsulate(mr.bounds);
+            }
+
+            if (!first)
+            {
+                BoxCollider bc = group.gameObject.AddComponent<BoxCollider>();
+                bc.center = group.InverseTransformPoint(worldBounds.center);
+                Vector3 localSize = group.InverseTransformVector(worldBounds.size);
+                bc.size = new Vector3(
+                    Mathf.Abs(localSize.x),
+                    Mathf.Abs(localSize.y),
+                    Mathf.Abs(localSize.z));
+            }
+        }
+
+        if (group.GetComponent<Rigidbody>() == null)
+        {
+            Rigidbody rb              = group.gameObject.AddComponent<Rigidbody>();
+            rb.isKinematic            = true;
+            rb.useGravity             = false;
+            rb.mass                   = 1f;
+            rb.linearDamping          = 5f;
+            rb.angularDamping         = 5f;
+            rb.interpolation          = RigidbodyInterpolation.Interpolate;
+            rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
         }
     }
 
@@ -184,6 +303,7 @@ public class SteeringSnapSetup : MonoBehaviour
 
     void Update()
     {
+        // Single-mesh parts
         foreach (PartEntry entry in entries)
         {
             if (entry.isSnapped) continue;
@@ -200,10 +320,34 @@ public class SteeringSnapSetup : MonoBehaviour
             // Released: cursor dropped this part this frame
             if (!heldNow && entry.isHeld)
             {
-                entry.isHeld    = false;
-                entry.isSnapped = true; // Prevent re-entry before coroutine completes
+                entry.isHeld = false;
+                pendingSnaps++;          // guard AllPartsFullySnapped before isSnapped flips
+                entry.isSnapped = true;
                 SetGhostHighlight(entry, false);
                 StartCoroutine(SnapNextFrame(entry));
+            }
+        }
+
+        // Group parts — grabbed and snapped as a single unit
+        foreach (GroupEntry grp in groupEntries)
+        {
+            if (grp.isSnapped) continue;
+
+            bool heldNow = cursor != null && cursor.HeldObject == grp.physicalGroup.gameObject;
+
+            if (heldNow && !grp.isHeld)
+            {
+                grp.isHeld = true;
+                SetGroupHighlight(grp, true);
+            }
+
+            if (!heldNow && grp.isHeld)
+            {
+                grp.isHeld = false;
+                pendingSnaps++;          // guard AllPartsFullySnapped before isSnapped flips
+                grp.isSnapped = true;
+                SetGroupHighlight(grp, false);
+                StartCoroutine(SnapGroupNextFrame(grp));
             }
         }
     }
@@ -214,14 +358,13 @@ public class SteeringSnapSetup : MonoBehaviour
     /// </summary>
     IEnumerator SnapNextFrame(PartEntry entry)
     {
-        pendingSnaps++;
-
         // Skip the frame where DropObject() ran — physics may override position same frame
         yield return null;
 
         Rigidbody rb = entry.physicalPart.GetComponent<Rigidbody>();
         if (rb != null)
         {
+            rb.isKinematic     = false; // force non-kinematic so velocity reset is valid
             rb.linearVelocity  = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
             rb.isKinematic     = true;
@@ -247,6 +390,41 @@ public class SteeringSnapSetup : MonoBehaviour
         pendingSnaps--;
     }
 
+    /// <summary>
+    /// Waits one frame, then snaps the group parent to its ghost group's world
+    /// transform. All sub-children follow automatically as Transform children.
+    /// </summary>
+    IEnumerator SnapGroupNextFrame(GroupEntry grp)
+    {
+        yield return null;
+
+        Rigidbody rb = grp.physicalGroup.GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.isKinematic     = false; // force non-kinematic so velocity reset is valid
+            rb.linearVelocity  = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            rb.isKinematic     = true;
+            rb.useGravity      = false;
+            rb.constraints     = RigidbodyConstraints.FreezeAll;
+        }
+
+        grp.physicalGroup.SetPositionAndRotation(
+            grp.ghostGroup.position,
+            grp.ghostGroup.rotation);
+
+        if (rb != null)
+        {
+            rb.position = grp.ghostGroup.position;
+            rb.rotation = grp.ghostGroup.rotation;
+        }
+
+        Collider col = grp.physicalGroup.GetComponent<Collider>();
+        if (col != null) col.enabled = false;
+
+        pendingSnaps--;
+    }
+
     void SetGhostHighlight(PartEntry entry, bool on)
     {
         if (entry.ghostRenderer == null) return;
@@ -256,14 +434,29 @@ public class SteeringSnapSetup : MonoBehaviour
         entry.ghostRenderer.SetPropertyBlock(entry.mpb);
     }
 
+    /// <summary>Highlights or clears all sub-ghost renderers in a group simultaneously.</summary>
+    void SetGroupHighlight(GroupEntry grp, bool on)
+    {
+        for (int i = 0; i < grp.ghostRenderers.Length; i++)
+        {
+            if (grp.ghostRenderers[i] == null) continue;
+            grp.ghostRenderers[i].GetPropertyBlock(grp.mpbs[i]);
+            grp.mpbs[i].SetColor(EmissionId,
+                on ? highlightColor * emissionIntensity : Color.black);
+            grp.ghostRenderers[i].SetPropertyBlock(grp.mpbs[i]);
+        }
+    }
+
     /// <summary>
     /// Returns true when every matched part has been snapped into place.
     /// </summary>
     public bool IsAssemblyComplete()
     {
-        if (entries.Count == 0) return false;
+        if (entries.Count == 0 && groupEntries.Count == 0) return false;
         foreach (PartEntry e in entries)
             if (!e.isSnapped) return false;
+        foreach (GroupEntry g in groupEntries)
+            if (!g.isSnapped) return false;
         return true;
     }
 }

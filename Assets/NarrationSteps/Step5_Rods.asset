@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a35d6c4b6e1f8d24b9a7712cbeaed57c, type: 3}
+  m_Name: Step5_Rods
+  m_EditorClassIdentifier: Assembly-CSharp::EngineNarrationStep
+  stepLabel: CONNECTING RODS
+  narrationText: "These are the connecting rods \u2014 the mechanical link between
+    pistons and crankshaft.\n\nThe top end connects to the piston pin. The bottom
+    end wraps around the crankshaft throw.\n\nAs the piston is pushed down, the connecting
+    rod transmits that force to the crankshaft and \u2014 because of the offset throw
+    \u2014 converts the straight push into rotational torque.\n\nThis is the fundamental
+    mechanical transformation. Linear becomes circular."
+  voiceOver: {fileID: 8300000, guid: e493c6bc046e37c4db343855ee405ae0, type: 3}
+  highlightPartNames:
+  - Connecting_Rod1
+  - Connecting_Rod2
+  - Connecting_Rod3
+  - Connecting_Rod4
+  - Connecting_Rod5
+  - Connecting_Rod6
+  highlightGroupNames: []

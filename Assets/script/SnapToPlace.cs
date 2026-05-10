@@ -151,8 +151,6 @@ public class SnapToPlace : MonoBehaviour
         Rigidbody rb = candidate.GetComponent<Rigidbody>();
         if (rb != null)
         {
-            rb.linearVelocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
             rb.position = snapPoint.position;
             rb.rotation = snapPoint.rotation;
 

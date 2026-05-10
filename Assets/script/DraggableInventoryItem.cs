@@ -18,6 +18,10 @@ public class DraggableInventoryItem : MonoBehaviour, IBeginDragHandler, IDragHan
     private GameObject draggedObject;
     private Camera mainCamera;
     private bool isDragging;
+
+    // Exact world position where the 3D preview was spawned at drag start.
+    // Used to teleport the part back when the order validation fails.
+    private Vector3 dragStartSpawnPosition;
     
     void Awake()
     {
@@ -31,6 +35,12 @@ public class DraggableInventoryItem : MonoBehaviour, IBeginDragHandler, IDragHan
         mainCamera = Camera.main;
     }
     
+    /// <summary>Returns the 3D object currently being dragged, or null if not dragging.</summary>
+    public GameObject GetDraggedObject() => draggedObject;
+
+    /// <summary>Returns the itemName of the item assigned to this slot, or null if not initialised.</summary>
+    public string CurrentItemName => itemData != null ? itemData.itemName : null;
+
     public void Initialize(InventoryItemData data, InventoryManager manager)
     {
         itemData = data;
@@ -63,6 +73,11 @@ public class DraggableInventoryItem : MonoBehaviour, IBeginDragHandler, IDragHan
         }
         
         Vector3 spawnPosition = mainCamera.transform.position + mainCamera.transform.forward * dragDistance;
+
+        // Store original spawn position before any drag movement so we can always
+        // restore the object to this exact location if validation fails.
+        dragStartSpawnPosition = spawnPosition;
+
         draggedObject = Instantiate(itemData.prefabToSpawn, spawnPosition, spawnRotation);
         
         SetupDraggedObject(draggedObject);
@@ -101,6 +116,20 @@ public class DraggableInventoryItem : MonoBehaviour, IBeginDragHandler, IDragHan
 
         isDragging = false;
 
+        // ── Assembly order validation ─────────────────────────────────────────
+        // Check the order BEFORE any snap-to-place logic runs.
+        // If the part is wrong: destroy the preview, restore inventory slot, show alert.
+        // Nothing else changes — index, inventory, and car state stay identical.
+        if (AssemblyOrderManager.Instance != null &&
+            !AssemblyOrderManager.Instance.IsCorrectPart(itemData.itemName))
+        {
+            CancelDragAndRestoreInventory();
+            AssemblyOrderManager.Instance.ShowWrongOrderAlert();
+            draggedObject = null;
+            return;
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         Rigidbody rb = draggedObject.GetComponent<Rigidbody>();
 
         // Hand the part directly to CenterUICursor — player holds it immediately,
@@ -128,6 +157,43 @@ public class DraggableInventoryItem : MonoBehaviour, IBeginDragHandler, IDragHan
         }
 
         draggedObject = null;
+    }
+
+    /// <summary>
+    /// Called when order validation fails.
+    /// Teleports the spawned preview back to its exact spawn origin, freezes it in
+    /// place so physics cannot move it, then immediately destroys it and re-enables
+    /// the inventory slot — all before any snap-to-place logic can execute.
+    /// </summary>
+    private void CancelDragAndRestoreInventory()
+    {
+        if (draggedObject != null)
+        {
+            // Freeze in place — stops any residual physics movement
+            Rigidbody rb = draggedObject.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.isKinematic = true;
+                rb.linearVelocity   = Vector3.zero;
+                rb.angularVelocity  = Vector3.zero;
+                rb.constraints      = RigidbodyConstraints.FreezeAll;
+            }
+
+            // Return to exact original spawn position
+            draggedObject.transform.position = dragStartSpawnPosition;
+
+            // Destroy the preview — it never made it to the car
+            Destroy(draggedObject);
+        }
+
+        // Re-enable the inventory slot exactly as it was before the drag started
+        gameObject.SetActive(true);
+        canvasGroup.alpha = 1f;
+        canvasGroup.blocksRaycasts = true;
+
+        InventorySlotVisuals visuals = GetComponent<InventorySlotVisuals>();
+        if (visuals != null)
+            visuals.SetDisabled(false);
     }
     
     private void SetupDraggedObject(GameObject obj)

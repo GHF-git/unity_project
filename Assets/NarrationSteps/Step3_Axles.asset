@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a35d6c4b6e1f8d24b9a7712cbeaed57c, type: 3}
+  m_Name: Step3_Axles
+  m_EditorClassIdentifier: Assembly-CSharp::EngineNarrationStep
+  stepLabel: MAIN BEARINGS
+  narrationText: "These are the main bearing journals \u2014 what you called the
+    crankshaft axles.\n\nThey support the crankshaft at multiple points along its
+    length, preventing flex and vibration.\n\nIn a real engine, these surfaces are
+    lubricated with pressurized oil. Without them, the crankshaft would destroy itself
+    within seconds."
+  voiceOver: {fileID: 8300000, guid: 627105df1ced10a499cb85aba6a6f3e2, type: 3}
+  highlightPartNames:
+  - Crankshaft axle
+  - axle spacer1
+  - axle spacer2
+  highlightGroupNames: []

@@ -25,11 +25,15 @@ public class MoteurAssemblyManager : MonoBehaviour
     public GameObject steeringSystem1;
     public GameObject steeringSystemSnap;
 
-    [Tooltip("ProceedToCarAssemblyButton — hidden until the steering phase starts.")]
-    public GameObject proceedToCarButton;
+    [Tooltip("PrecedentButton — shown when the player enters the steering phase.")]
+    public PrecedentButton precedentButton;
 
     [Header("Engine Animation")]
     public MoteurAnimationController moteurAnimationController;
+
+    [Header("Narration")]
+    [Tooltip("Drives the instructor narration sequence once all engine parts are assembled.")]
+    public EngineNarrationController narrationController;
 
     [Header("Proceed Button")]
     public Button proceedButton;
@@ -76,6 +80,8 @@ public class MoteurAssemblyManager : MonoBehaviour
 
             if (moteurAnimationController != null)
                 moteurAnimationController.IsUnlocked = true;
+
+            narrationController?.StartSequence();
 
             StartCoroutine(UnlockPulse());
         }
@@ -128,11 +134,12 @@ public class MoteurAssemblyManager : MonoBehaviour
         SetActive(steeringSystem1,    true);
         SetActive(steeringSystemSnap, true);
 
-        // Reveal the "Proceed to Car Assembly" button for the steering phase
-        SetActive(proceedToCarButton, true);
-
         if (proceedButton != null)
             proceedButton.gameObject.SetActive(false);
+
+        // Show Précédent — player can now navigate back to the engine phase
+        if (precedentButton != null)
+            precedentButton.Show();
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -166,5 +173,18 @@ public class MoteurAssemblyManager : MonoBehaviour
     static void SetActive(GameObject go, bool active)
     {
         if (go != null) go.SetActive(active);
+    }
+
+    /// <summary>
+    /// Restores the Proceed to Steering System button to its unlocked green state.
+    /// Called by PrecedentButton when the player navigates back to the engine phase.
+    /// Does not reset engineAssembled — the engine remains considered complete.
+    /// </summary>
+    public void RestoreProceedButton()
+    {
+        if (proceedButton == null) return;
+
+        proceedButton.gameObject.SetActive(true);
+        SetButtonLocked(false);
     }
 }

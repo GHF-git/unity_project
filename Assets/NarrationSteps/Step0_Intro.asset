@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a35d6c4b6e1f8d24b9a7712cbeaed57c, type: 3}
+  m_Name: Step0_Intro
+  m_EditorClassIdentifier: Assembly-CSharp::EngineNarrationStep
+  stepLabel: INTRODUCTION
+  narrationText: "Welcome. Today, we're going to discover how a 6-cylinder engine
+    works \u2014 from the very first part to the moment power leaves the system.\n\nThis
+    engine is inspired by the LEGO Technic Porsche 911 RSR \u2014 a brilliant mechanical
+    model that mirrors a real boxer engine.\n\nWatch closely. Every part has a purpose.
+    Let's begin."
+  voiceOver: {fileID: 8300000, guid: 9ff8b09e9d1e6e14285bfe41c9f8f46f, type: 3}
+  highlightPartNames: []
+  highlightGroupNames: []

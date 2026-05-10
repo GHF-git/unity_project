@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a35d6c4b6e1f8d24b9a7712cbeaed57c, type: 3}
+  m_Name: SteerStep11_Summary
+  m_EditorClassIdentifier: Assembly-CSharp::EngineNarrationStep
+  stepLabel: SUMMARY
+  narrationText: "Now \u2014 let's watch the full chain in motion.\n\nWheel to column\u2026
+    input gear to intermediate gear\u2026 upper and lower axles\u2026 output gear
+    to rack\u2026 links to knuckles\u2026 and the tires turn.\n\nFrom a simple rotation
+    at the wheel \u2014 to precise directional control at the road. That is how steering
+    works."
+  voiceOver: {fileID: 8300000, guid: 065fb694033a7b8419ea88891396a66e, type: 3}
+  highlightPartNames: []
+  highlightGroupNames: []

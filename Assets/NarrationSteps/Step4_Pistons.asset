@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a35d6c4b6e1f8d24b9a7712cbeaed57c, type: 3}
+  m_Name: Step4_Pistons
+  m_EditorClassIdentifier: Assembly-CSharp::EngineNarrationStep
+  stepLabel: PISTONS
+  narrationText: "Here are the six pistons.\n\nEach one slides inside its cylinder
+    with almost zero clearance \u2014 typically less than a tenth of a millimeter
+    in a real engine.\n\nIn a real engine, the fuel-air mixture ignites above each
+    piston, forcing it downward with enormous pressure.\n\nBut look at the timing
+    \u2014 they don't all move together. Each piston fires at a different moment,
+    and that staggered rhythm is what gives a 6-cylinder its famous smoothness."
+  voiceOver: {fileID: 8300000, guid: d12d31f4f86f14f4cbf94e6bb27a0807, type: 3}
+  highlightPartNames:
+  - piston1
+  - piston2
+  - piston3
+  - piston4
+  - piston5
+  - piston6
+  highlightGroupNames: []

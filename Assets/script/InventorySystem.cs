@@ -48,6 +48,11 @@ public class InventorySystem : MonoBehaviour
         Image icon = slot.transform.Find("PartIcon")?.GetComponent<Image>();
         Text nameText = slot.transform.Find("PartName")?.GetComponent<Text>();
 
+        // CountText is a wheels-only badge — hide it on every slot by default.
+        Transform countChild = slot.transform.Find("CountText");
+        if (countChild != null)
+            countChild.gameObject.SetActive(false);
+
         if (icon != null && itemData.itemIcon != null)
             icon.sprite = itemData.itemIcon;
 
@@ -61,6 +66,27 @@ public class InventorySystem : MonoBehaviour
         draggable.iconImage = icon;
         draggable.Initialize(itemData, inventoryManager);
         draggable.placementLayerMask = LayerMask.GetMask("Ground", "Default");
+
+        // Wheels use a dedicated slot handler that spawns one wheel at a time.
+        if (itemData.itemName == "wheels")
+        {
+            // Remove the generic draggable so it doesn't conflict.
+            DraggableInventoryItem existing = slot.GetComponent<DraggableInventoryItem>();
+            if (existing != null)
+                Destroy(existing);
+
+            WheelInventorySlot wheelSlot = slot.AddComponent<WheelInventorySlot>();
+            wheelSlot.iconImage   = icon;
+            wheelSlot.wheelsPrefab = itemData.prefabToSpawn;
+
+            // Wire the count badge — re-enable it only for the wheels slot.
+            Transform countBadge = slot.transform.Find("CountText");
+            if (countBadge != null)
+            {
+                countBadge.gameObject.SetActive(true);
+                wheelSlot.countText = countBadge.GetComponent<Text>();
+            }
+        }
 
         // Apply slot color via the Button's ColorBlock so Unity's color-tint
         // transition doesn't override what we set on the Image directly.

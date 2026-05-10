@@ -17,6 +17,9 @@ public class AssemblyProgressUI : MonoBehaviour
     public Text percentLabel;       // e.g. "73%"
     public Text partsLabel;         // e.g. "11 / 15 parts"
 
+    [Tooltip("The inventory panel to hide once assembly reaches 100%.")]
+    public GameObject inventoryPanel;
+
     [Header("Filter")]
     [Tooltip("If assigned, SnapToPlace zones that are children of this Transform " +
              "will be excluded from the count (e.g. SteeringSystem-snap).")]
@@ -109,6 +112,9 @@ public class AssemblyProgressUI : MonoBehaviour
         }
 
         targetFill = cachedTotal > 0 ? (float)cachedPlaced / cachedTotal : 0f;
+
+        if (targetFill >= 1f && inventoryPanel != null && inventoryPanel.activeSelf)
+            inventoryPanel.SetActive(false);
     }
 
     private void UpdateLabels()

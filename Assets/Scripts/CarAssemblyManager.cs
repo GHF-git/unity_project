@@ -29,12 +29,23 @@ public class CarAssemblyManager : MonoBehaviour
     public Image  buttonImage;
     public Image  borderImage;
 
+    [Tooltip("PrecedentButton — hidden permanently once the car assembly phase begins.")]
+    public PrecedentButton precedentButton;
+
     [Header("Button Colors")]
     public Color lockedColor         = new Color(0.10f, 0.11f, 0.14f, 0.92f);
     public Color unlockedColor       = new Color(0.08f, 0.62f, 0.25f, 1.00f);
     public Color highlightFlashColor = new Color(0.12f, 0.78f, 0.32f, 1.00f);
     public Color borderLockedColor   = new Color(0.25f, 0.27f, 0.30f, 0.95f);
     public Color borderUnlockedColor = new Color(0.10f, 0.80f, 0.35f, 1.00f);
+
+    [Header("Differential Assembly — inserted phase")]
+    [Tooltip("DifferentialAssemblyManager — activated when the player proceeds from Steering.")]
+    public DifferentialAssemblyManager differentialAssemblyManager;
+
+    [Header("Steering Narration")]
+    [Tooltip("Steering narration controller — started when all steering parts are snapped.")]
+    public SteeringNarrationController steeringNarrationController;
 
     [Header("3D Button Highlight")]
     [Tooltip("MeshRenderer of the physical garage button in the scene.")]
@@ -67,10 +78,9 @@ public class CarAssemblyManager : MonoBehaviour
 
     void Start()
     {
-        SetButtonLocked(true);
-
+        // Hide completely — proceed is handled exclusively by the steering encouragement panel.
         if (proceedButton != null)
-            proceedButton.onClick.AddListener(OnProceedClicked);
+            proceedButton.gameObject.SetActive(false);
 
         // Ensure emission keyword is enabled on the door button material instance
         // so MaterialPropertyBlock can drive it at runtime.
@@ -90,8 +100,9 @@ public class CarAssemblyManager : MonoBehaviour
             if (steeringAssembly != null)
                 steeringAssembly.IsSteeringComplete = true;
 
-            SetButtonLocked(false);
-            StartCoroutine(UnlockPulse());
+            // Start the steering narration sequence — the encouragement panel
+            // owns the proceed action, so the top-right button is never shown.
+            steeringNarrationController?.StartSequence();
         }
 
         // Pulse the 3D door button emission once activated
@@ -101,15 +112,44 @@ public class CarAssemblyManager : MonoBehaviour
 
     // ── Button click ──────────────────────────────────────────────────────────
 
-    void OnProceedClicked()
+    /// <summary>
+    /// Transitions to the Differential Assembly phase (inserted between Steering and Car).
+    /// Wired as a persistent onClick call on the "Proceed to Differential Assembly" button.
+    /// </summary>
+    public void OnProceedClicked()
     {
         if (!assemblyComplete) return;
 
-        buttonHighlightActive = true;
-
-        // Hide the UI button — the player must now walk to the 3D button
+        // Hide this button — Differential phase manages its own forward button
         if (proceedButton != null)
             proceedButton.gameObject.SetActive(false);
+
+        // Hide the steering Précédent button while in Differential phase (Bug 1 fix):
+        // it should not be visible or clickable — DifferentialPrecedentButton handles back-nav.
+        // We don't use HidePermanently() because we need to restore it if player goes back.
+        if (precedentButton != null)
+            precedentButton.gameObject.SetActive(false);
+
+        // Hide SteeringSystem visuals — Differential phase owns the screen now (Bug 4 fix)
+        if (steeringSnapSetup != null)
+            steeringSnapSetup.gameObject.SetActive(false);
+
+        // Activate Differential phase — BeginPhase() handles showing parts and ghosts
+        if (differentialAssemblyManager != null)
+        {
+            differentialAssemblyManager.gameObject.SetActive(true);
+            differentialAssemblyManager.BeginPhase();
+        }
+    }
+
+    /// <summary>
+    /// Activates the pulsing door-button highlight without requiring the steering assembly
+    /// completion gate. Called by DifferentialAssemblyManager after differential is done
+    /// and the car UI phase has already been shown via SteeringAssemblyController.
+    /// </summary>
+    public void ActivateDoorButtonHighlight()
+    {
+        buttonHighlightActive = true;
     }
 
     // ── 3D Button pulsing emission ────────────────────────────────────────────
@@ -214,5 +254,10 @@ public class CarAssemblyManager : MonoBehaviour
             mpb.SetColor(EmissionColorId, Color.black);
             doorButtonRenderer.SetPropertyBlock(mpb, redMaterialIndex);
         }
+    }
+
+    static void SetActive(GameObject go, bool active)
+    {
+        if (go != null) go.SetActive(active);
     }
 }

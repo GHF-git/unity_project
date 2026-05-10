@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a35d6c4b6e1f8d24b9a7712cbeaed57c, type: 3}
+  m_Name: SteerStep00_Intro
+  m_EditorClassIdentifier: Assembly-CSharp::EngineNarrationStep
+  stepLabel: INTRODUCTION
+  narrationText: "Welcome to the steering system.\n\nWhere the engine converts fuel
+    into rotation \u2014 the steering system converts your intention into direction.\n\nWe'll
+    trace the full chain, from the wheel in your hands to the knuckles that turn
+    the tires. Let's begin."
+  voiceOver: {fileID: 8300000, guid: 38cac9dcaa15db34c858b96bdc8ecdeb, type: 3}
+  highlightPartNames: []
+  highlightGroupNames: []

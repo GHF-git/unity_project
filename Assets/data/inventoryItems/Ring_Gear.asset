@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 25fc4c3f29d3d5f418cbdaaab35956d6, type: 3}
+  m_Name: Ring_Gear
+  m_EditorClassIdentifier: Assembly-CSharp::InventoryItemData
+  itemName: Ring_Gear
+  itemIcon: {fileID: 0}
+  prefabToSpawn: {fileID: 648823775997858413, guid: aef95eb55d8104c499e2a20f14b3b671, type: 3}
+  spawnScale: 5
+  targetSnapZoneName: Ring_Gear-snap

@@ -15,4 +15,6 @@ MonoBehaviour:
   itemName: wheels
   itemIcon: {fileID: 21300000, guid: 0fae8f28211e59f4e994d93b0530721b, type: 3}
   prefabToSpawn: {fileID: 6941717144115322737, guid: 614bb0d452fe4974f8aa9e595ff8b3f5, type: 3}
-  targetSnapZoneName: wheels Zone
+  spawnScale: 5
+  targetSnapZoneName: 
+  dynamicZoneAssignment: 1

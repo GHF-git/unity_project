@@ -1,64 +1,43 @@
-using UnityEngine;
 using TMPro;
+using UnityEngine;
 
 /// <summary>
-/// Drives the speedometer needle and speed label from the car's Rigidbody velocity.
-/// The needle pivot (Arrow) rotates on its Z axis:
-///   -135 deg = 0 km/h  (left stop)
-///   +135 deg = maxSpeedKmh  (right stop)
+/// Reads the car Rigidbody velocity every frame, updates the TMP speed label,
+/// and rotates the needle between minAngle and maxAngle based on current speed.
 /// </summary>
 public class SpeedometerUI : MonoBehaviour
 {
-    [Header("References")]
-    [Tooltip("The car's Rigidbody — drag the car root here.")]
+    [Tooltip("Rigidbody of the car.")]
     public Rigidbody carRigidbody;
 
-    [Tooltip("The RectTransform used as the needle pivot (Arrow GameObject).")]
-    public RectTransform needlePivot;
+    [Tooltip("TMP label that shows the numeric speed.")]
+    public TextMeshProUGUI speedText;
 
-    [Tooltip("TextMeshPro label that shows the numeric speed.")]
-    public TextMeshProUGUI speedLabel;
+    [Tooltip("RectTransform of the Arrow — rotated on Z to indicate speed.")]
+    public RectTransform arrow;
 
-    [Header("Settings")]
-    [Tooltip("Speed in km/h that corresponds to the full-scale needle position.")]
-    public float maxSpeedKmh = 180f;
+    [Tooltip("Maximum speed the dial is calibrated for (km/h).")]
+    public float maxSpeed = 280f;
 
-    [Tooltip("Needle Z angle when speed = 0 km/h. " +
-             "Unity UI Z rotates counter-clockwise: 135 = bottom-left (standard 0 position).")]
-    public float minAngle = 135f;
+    [Tooltip("Needle Z angle at speed = 0.")]
+    public float minSpeedArrowAngle = 135f;
 
-    [Tooltip("Needle Z angle when speed = maxSpeedKmh. " +
-             "-135 = bottom-right (standard max position).")]
-    public float maxAngle = -135f;
+    [Tooltip("Needle Z angle at speed = maxSpeed.")]
+    public float maxSpeedArrowAngle = -135f;
 
-    [Tooltip("How smoothly the needle follows the real speed (higher = snappier).")]
-    public float needleDamping = 8f;
-
-    // Current displayed angle, smoothly interpolated.
-    float currentAngle;
-
-    void Awake()
-    {
-        currentAngle = minAngle;
-    }
+    const float MetersPerSecondToKmh = 3.6f;
 
     void Update()
     {
-        if (carRigidbody == null || needlePivot == null) return;
+        if (carRigidbody == null) return;
 
-        // Signed speed along the car's forward axis so reversing reads near 0.
-        float forwardSpeed = Vector3.Dot(carRigidbody.linearVelocity, carRigidbody.transform.forward);
-        float speedKmh = Mathf.Max(0f, forwardSpeed * 3.6f);
+        float speedKmh = carRigidbody.linearVelocity.magnitude * MetersPerSecondToKmh;
 
-        // Map speed to needle angle.
-        float targetAngle = Mathf.Lerp(minAngle, maxAngle, Mathf.Clamp01(speedKmh / maxSpeedKmh));
+        if (speedText != null)
+            speedText.text = ((int)speedKmh) + " km/h";
 
-        // Smooth needle movement — fast rise, same fall.
-        currentAngle = Mathf.Lerp(currentAngle, targetAngle, needleDamping * Time.deltaTime);
-
-        needlePivot.localRotation = Quaternion.Euler(0f, 0f, currentAngle);
-
-        if (speedLabel != null)
-            speedLabel.text = Mathf.RoundToInt(speedKmh) + " km/h";
+        if (arrow != null)
+            arrow.localEulerAngles = new Vector3(0f, 0f,
+                Mathf.Lerp(minSpeedArrowAngle, maxSpeedArrowAngle, speedKmh / maxSpeed));
     }
 }

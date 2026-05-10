@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a35d6c4b6e1f8d24b9a7712cbeaed57c, type: 3}
+  m_Name: Step1_Base
+  m_EditorClassIdentifier: Assembly-CSharp::EngineNarrationStep
+  stepLabel: ENGINE BASE
+  narrationText: "This is the engine block \u2014 the structural skeleton of the
+    entire system.\n\nIt holds every moving part in precise alignment. Without this
+    rigid frame, nothing could function under the forces of combustion.\n\nRight
+    now it's hiding everything inside\u2026 so let's make it transparent \u2014 and
+    reveal what's happening within."
+  voiceOver: {fileID: 8300000, guid: 4af61f07a0fb69b41946f0ef6abe149b, type: 3}
+  highlightPartNames: []
+  highlightGroupNames:
+  - engine block

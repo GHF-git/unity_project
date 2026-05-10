@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a35d6c4b6e1f8d24b9a7712cbeaed57c, type: 3}
+  m_Name: Step7_Summary
+  m_EditorClassIdentifier: Assembly-CSharp::EngineNarrationStep
+  stepLabel: SUMMARY
+  narrationText: "Now \u2014 let's watch everything work together.\n\nSix pistons
+    stroke in sequence\u2026 connecting rods convert that motion\u2026 the crankshaft
+    spins\u2026 the gear transfers power out of the system.\n\nFrom controlled force\u2026
+    to continuous rotation. That is how a 6-cylinder engine works."
+  voiceOver: {fileID: 8300000, guid: 9ed574f06a60e02479383ade1aca3853, type: 3}
+  highlightPartNames: []
+  highlightGroupNames: []

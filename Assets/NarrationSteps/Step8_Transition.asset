@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a35d6c4b6e1f8d24b9a7712cbeaed57c, type: 3}
+  m_Name: Step8_Transition
+  m_EditorClassIdentifier: Assembly-CSharp::EngineNarrationStep
+  stepLabel: NEXT STEP
+  narrationText: "You've just explored the heart of the car.\n\nNext \u2014 we'll
+    look at how the driver controls direction. Let's move to the steering system."
+  voiceOver: {fileID: 8300000, guid: c2e84775f7e6d954389cbc1856642696, type: 3}
+  highlightPartNames: []
+  highlightGroupNames: []

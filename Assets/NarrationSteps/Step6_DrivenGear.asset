@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a35d6c4b6e1f8d24b9a7712cbeaed57c, type: 3}
+  m_Name: Step6_DrivenGear
+  m_EditorClassIdentifier: Assembly-CSharp::EngineNarrationStep
+  stepLabel: DRIVEN GEAR
+  narrationText: "Finally \u2014 the driven gear and output axle.\n\nThis receives
+    the rotation from the crankshaft and transfers it outward to the rest of the
+    drivetrain \u2014 eventually reaching the differential then the wheels.\n\nIn
+    the real Porsche 911, the engine sends power rearward through a transaxle. In
+    this model, you can see exactly how that transfer begins."
+  voiceOver: {fileID: 8300000, guid: 1ee0a98a89296fd4888bdfd8e78d5fd9, type: 3}
+  highlightPartNames:
+  - Driven Gear
+  - Driven axle
+  highlightGroupNames: []
